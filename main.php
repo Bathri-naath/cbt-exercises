@@ -7,5 +7,5 @@ spl_autoload_register(function ($class) {
     }
 });
 
-$manage = new accountServices();
+$manage = new AccountService();
 $manage->run();
