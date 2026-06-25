@@ -28,12 +28,6 @@
         "account_type": "Savings",
         "account_balance": 105000,
         "customer_id": 5124
-      },
-      {
-        "account_number": 741254698,
-        "account_type": "Current",
-        "account_balance": 105000,
-        "customer_id": 5124
       }
     ]
   }

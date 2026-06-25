@@ -2,19 +2,69 @@
 
 class Customer
 {
-    public string $customer_name;
-    public int $mobile_number;
-    public string $customer_id;
-    public array $accounts;
+    private string $customer_name;
+    private int $mobile_number;
+    private int $customer_id;
+    private array $accounts = [];
 
-    public function __construct(int $_customer_id, string $_customer_name, int $_mobile_number, array $_accounts)
+    public function getCustomerName(): string
     {
-        $this->customer_name = $_customer_name;
-        $this->mobile_number = $_mobile_number;
-        $this->customer_id = $_customer_id;
-        $this->accounts = $_accounts;
-        $account = new Account($this->accounts);
+        return $this->customer_name;
     }
 
+    public function getMobileNumber(): int
+    {
+        return $this->mobile_number;
+    }
 
+    public function getCustomerId(): int
+    {
+        return $this->customer_id;
+    }
+
+    public function getAccounts(): array
+    {
+        return $this->accounts;
+    }
+
+    public function setCustomerName(string $_customer_name): void
+    {
+        $this->customer_name = $_customer_name;
+    }
+
+    public function setMobileNumber(int $_mobile_number): void
+    {
+        $this->mobile_number = $_mobile_number;
+    }
+
+    public function setCustomerId(int $_customer_id): void
+    {
+        $this->customer_id = $_customer_id;
+    }
+
+    public function setAccounts(array $_accounts): void
+    {
+        foreach ($_accounts as $account_id => $details) {
+            $account_details = new Account();
+            $account_details->setAccountNumber($details->account_number);
+            $account_details->setAccountBalance($details->account_balance);
+            $account_details->setAccountType($details->account_type);
+            $this->accounts[$details->account_number] = $account_details;
+        }
+    }
+
+    public function addAccount(int $_account_number, object $_account): void
+    {
+        $this->accounts[$_account_number] = $_account;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            "customer_id" => $this->customer_id,
+            "customer_name" => $this->customer_name,
+            "mobile_number" => $this->mobile_number,
+            "accounts" => $this->accounts
+        ];
+    }
 }
