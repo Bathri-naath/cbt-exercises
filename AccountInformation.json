@@ -1,34 +1,48 @@
-[
-  {
-    "customer_id": 5654,
-    "customer_name": "Bathri",
-    "mobile_number": 94457,
-    "accounts": [
-      {
-        "account_number": 954133245,
-        "account_type": "Savings",
-        "account_balance": 105000,
-        "customer_id": 5654
-      },
-      {
-        "account_number": 746112357,
-        "account_type": "Current",
-        "account_balance": 105000,
-        "customer_id": 5654
-      }
-    ]
-  },
-  {
-    "customer_id": 5124,
-    "customer_name": "Bharat",
-    "mobile_number": 80153,
-    "accounts": [
-      {
-        "account_number": 475123395,
-        "account_type": "Savings",
-        "account_balance": 105000,
-        "customer_id": 5124
-      }
-    ]
-  }
-]
+{
+    "5654": {
+        "customer_id": 5654,
+        "customer_name": "Bathri",
+        "mobile_number": 94457,
+        "accounts": [
+            {
+                "account_number": 954133245,
+                "account_type": "Savings",
+                "account_balance": 105000
+            },
+            {
+                "account_number": 746112357,
+                "account_type": "Current",
+                "account_balance": 105000
+            }
+        ]
+    },
+    "5124": {
+        "customer_id": 5124,
+        "customer_name": "Bharat",
+        "mobile_number": 80153,
+        "accounts": [
+            {
+                "account_number": 475123395,
+                "account_type": "Savings",
+                "account_balance": 105000
+            },
+            {
+                "account_number": 369583659,
+                "account_type": "Current",
+                "account_balance": 0
+            }
+        ]
+    },
+    "8009": {
+        "customer_id": 8009,
+        "customer_name": "Battu",
+        "mobile_number": 94448,
+        "accounts": [
+            {
+                "account_number": 354728731,
+                "account_type": "Savings",
+                "account_balance": 53000
+            }
+        ]
+    }
+}

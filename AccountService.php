@@ -7,11 +7,11 @@ require_once 'Customer.php';
 class AccountService
 {
 
-    public $customers = [];
+    public array $customers = [];
     public $total_amount;
     public $date_today;
     public object $accounts;
-    private array $transactions = [];
+    private object $transactions;
     public $limit_json_path = __DIR__ . "/AccountLimit.json";
     public $customer_json_path = __DIR__ . '/AccountInformation.json';
     public $transaction_json_path = __DIR__ . '/AccountTransaction.json';
@@ -31,13 +31,6 @@ class AccountService
 
         }
     }
-    private function loadAccountDetails()
-    {
-
-
-
-    }
-
 
     private function loadTransactions()
     {
@@ -57,11 +50,13 @@ class AccountService
     }
 
 
-    private function checkAccountNumber(int $_acc_num)
+    private function checkAccountNumber(int $_account_number)
     {
         foreach ($this->customers as $account => $details) {
-            if (in_array($_acc_num, array_column($details->getAccounts(), 'account_number'))) {
-                return true;
+            foreach ($details->getAccounts() as $account_details) {
+                if ($_account_number == $account_details->getAccountNumber()) {
+                    return true;
+                }
             }
         }
     }
@@ -75,7 +70,7 @@ class AccountService
         }
     }
 
-    private function saveAccountDetails(int $_account_number, string $_account_type, float $_account_balance, int $_customer_id, string $_banker_name, int $_banker_mobile_number)
+    private function saveNewAccount(int $_account_number, string $_account_type, float $_account_balance, int $_customer_id, ?string $_customer_name, ?int $_mobile_number)
     {
         $_customers = $this->customers;
         $new_account = new Account();
@@ -83,19 +78,30 @@ class AccountService
         $new_account->setAccountType($_account_type);
         $new_account->setAccountNumber($_account_number);
 
-        $new_account_details = $new_account;
+        $flag = 0;
 
         foreach ($this->customers as $customer_id => $customer_details) {
             if ($customer_id == $_customer_id) {
-                // $customer_details->addAccount($_account_number, $new_account_details);
+                $customer_details->addAccount($new_account);
+                $flag = 1;
             }
         }
-        // print_r($this->customers);
-        // die;
+        if ($flag == 0) {
+            $new_user = new Customer();
+            $new_user->setCustomerId($_customer_id);
+            $new_user->setMobileNumber($_mobile_number);
+            $new_user->setCustomerName($_customer_name);
+            $new_user->addAccount($new_account);
+            $this->customers[$_customer_id] = $new_user;
+        }
 
-        $new_customer_json_string = json_encode(array_values($this->customers), JSON_PRETTY_PRINT);
-        echo $new_customer_json_string;
-        die;
+        $indexed_customer_array = array_values($this->customers);
+        foreach ($indexed_customer_array as $customer) {
+            $indexed_accounts_array = array_values($customer->getAccounts());
+            $customer->loadAccount($indexed_accounts_array);
+        }
+
+        $new_customer_json_string = json_encode($indexed_customer_array, JSON_PRETTY_PRINT);
 
         file_put_contents($this->customer_json_path, $new_customer_json_string);
         echo "\nAccount created!";
@@ -124,7 +130,7 @@ class AccountService
 
         $new_account_number = $this->generateNewAccountNumber();
 
-        $this->saveAccountDetails($new_account_number, $input_account_type, 0.0, $_customer_id, $input_banker_name, $_banker_mobile_number);
+        $this->saveNewAccount($new_account_number, $input_account_type, 0.0, $_customer_id, $input_banker_name, $_banker_mobile_number);
 
 
     }
@@ -140,7 +146,7 @@ class AccountService
                 foreach ($accounts as $account_number => $account_details) {
                     $account_type = $account_details->getAccountType();
                 }
-                $customer_details = ["customer_name" => $details->getCustomerName(), "account_type" => $account_type, "customer_id" => $details->getCustomerId()];
+                $customer_details = ["account_type" => $account_type, "customer_id" => $details->getCustomerId()];
                 return $customer_details;
             }
 
@@ -192,9 +198,11 @@ class AccountService
     {
         foreach ($this->customers as $customer_id => $customer_details) {
             $retrieved_accounts = $customer_details->getAccounts();
-            if (array_key_exists($_account_number, $retrieved_accounts)) {
-                echo "\nCustomer ID: " . $customer_details->getCustomerId() . "\nAccount Holder Name: " . $customer_details->getCustomerName() . "\tMobile Number: " . $customer_details->getMobileNumber();
-                echo "\n\nAccount Number: " . $retrieved_accounts[$_account_number]->getAccountNumber() . "\tAccount Type: " . $retrieved_accounts[$_account_number]->getAccountType() . "\nAccount Balance: " . $retrieved_accounts[$_account_number]->getAccountBalance() . "\n";
+            foreach ($retrieved_accounts as $account_details) {
+                if ($account_details->getAccountNumber() == $_account_number) {
+                    echo "\nCustomer ID: " . $customer_details->getCustomerId() . "\nAccount Holder Name: " . $customer_details->getCustomerName() . "\tMobile Number: " . $customer_details->getMobileNumber();
+                    echo "\n\nAccount Number: " . $account_details->getAccountNumber() . "\tAccount Type: " . $account_details->getAccountType() . "\nAccount Balance: " . $account_details->getAccountBalance() . "\n";
+                }
             }
         }
     }
@@ -207,10 +215,10 @@ class AccountService
             echo "\nThis user already exists!\n";
             $this->displayAccountByMobileNumber($input_mobile_number);
             echo "\nHowever you still can add another account of different type\n";
-            $details = $this->getAccountDetailsByMobileNumber($input_mobile_number);
+            $existing_account_details = $this->getAccountDetailsByMobileNumber($input_mobile_number);
             $account_number = $this->generateNewAccountNumber();
-            $new_account_type = $this->generateNewAccountType($details['account_type']);
-            $this->saveAccountDetails($account_number, $new_account_type, 0.0, $details['customer_id'], $details['customer_name'], $input_mobile_number);
+            $new_account_type = $this->generateNewAccountType($existing_account_details['account_type']);
+            $this->saveNewAccount($account_number, $new_account_type, 0.0, $existing_account_details['customer_id'], NULL, NULL);
         } elseif ($account_count == 2) {
             echo "\nThis user already exists!\n";
             $this->displayAccountByMobileNumber($input_mobile_number);
@@ -246,7 +254,7 @@ class AccountService
         $limits = json_decode($limit_json_string);
         foreach ($limits as $type => $limit) {
             if ($type == $_account_type) {
-                if ($_amount <= $limit) {
+                if ($_amount < $limit) {
                     return true;
                 } else {
                     return false;
@@ -255,29 +263,31 @@ class AccountService
         }
     }
 
-    private function getAccountType(int $_acc_num)
+    private function getAccountType(int $_account_number)
     {
 
-        foreach ($this->accounts as $id => $account) {
-            if ($account->account->num == $_acc_num) {
-                return $account->account->type;
+        foreach ($this->customers as $customer_id => $customer_details) {
+            foreach ($customer_details->getAccounts() as $account) {
+                if ($account->getAccountNumber() == $_account_number) {
+                    return $account->getAccountType();
+                }
             }
         }
 
     }
 
-    private function checkDailyLimit(int $_acc_num)
+    private function checkDailyLimit(int $_account_number)
     {
 
         $this->loadTransactions();
         $total_amount = 0.0;
         foreach ($this->transactions as $id => $transaction) {
-            if ($this->date_today == $transaction->date && $transaction->account_number == $_acc_num) {
+            if ($this->date_today == $transaction->date && $transaction->account_number == $_account_number) {
                 $total_amount += $transaction->amount;
             }
         }
         $this->total_amount = $total_amount;
-        $account_type = $this->getAccountType($_acc_num);
+        $account_type = $this->getAccountType($_account_number);
         if ($this->canDeposit($account_type, $total_amount)) {
             return true;
         } else {
@@ -287,28 +297,31 @@ class AccountService
     }
 
 
-    private function getBalance(int $_acc_num)
+    private function getAccountBalance(int $_account_number)
     {
 
-        foreach ($this->accounts as $account => $details) {
-            if ($account == $_acc_num) {
-                return $details->account->bal;
+        foreach ($this->customers as $customer_id => $customer_details) {
+            foreach ($customer_details->getAccounts() as $account_details) {
+                if ($account_details->getAccountNumber() == $_account_number) {
+                    return $account_details->getAccountBalance();
+                }
             }
         }
 
     }
 
 
-    private function updateBalance(int $_acc_num, float $_amount)
+    private function updateBalance(int $_account_number, float $_deposit_amount)
     {
 
-        foreach ($this->accounts as $account => $details) {
-            if ($account == $_acc_num) {
-                $details->account->bal = $_amount;
-                $json = json_encode($this->accounts);
-                file_put_contents($this->customer_json_path, $json);
-                $this->loadAccountDetails();
-                break;
+        foreach ($this->customers as $customer_id => $customer_details) {
+            foreach ($customer_details->getAccounts() as $account_details) {
+                if ($account_details->getAccountNumber() == $_account_number) {
+                    $account_details->setAccountBalance($_deposit_amount);
+                    $json = json_encode($this->customers, JSON_PRETTY_PRINT);
+                    file_put_contents($this->customer_json_path, $json);
+                    break;
+                }
             }
         }
 
@@ -321,14 +334,13 @@ class AccountService
         acc_num_inp:
         $input_account_number = (int) readline("Enter the account number: ");
         if ($this->checkAccountNumber($input_account_number)) {
-
             $this->displayAccountByAccountNumber($input_account_number);
             amt_inp:
             $input_amount = (float) readline("Enter the amount to be deposited: ");
             $eligibility = $this->checkTransactions($input_account_number);
             if ($eligibility == true) {
                 updt_bal:
-                $existing_account_bal = $this->getBalance($input_account_number);
+                $existing_account_bal = $this->getAccountBalance($input_account_number);
                 $existing_account_bal += $input_amount;
                 $this->updateBalance($input_account_number, $existing_account_bal);
                 $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -374,10 +386,22 @@ class AccountService
         if ($this->checkAccountNumber($input_account_number)) {
 
             $this->displayAccountByAccountNumber($input_account_number);
-            unset($this->accounts->$input_account_number);
-            $json = json_encode($this->accounts);
+            foreach ($this->customers as $customer_id => $customer_details) {
+                foreach ($customer_details->getAccounts() as $account_details) {
+                    if ($account_details->getAccountNumber() == $input_account_number) {
+                        $number_of_accounts = count($customer_details->getAccounts());
+                        if ($number_of_accounts == 1) {
+                            unset($this->customers->$customer_id);
+                            print_r($this->customers->$customer_id);
+                            die;
+                        } else {
+                            unset($account_details->$input_account_number);
+                        }
+                    }
+                }
+            }
+            $json = json_encode($this->customers, JSON_PRETTY_PRINT);
             file_put_contents($this->customer_json_path, $json);
-            $this->loadAccountDetails();
             echo "\n\nAccount Deleted!\n";
 
         } else {

@@ -1,6 +1,6 @@
 <?php
 
-class Customer
+class Customer implements JsonSerializable
 {
     private string $customer_name;
     private int $mobile_number;
@@ -49,13 +49,18 @@ class Customer
             $account_details->setAccountNumber($details->account_number);
             $account_details->setAccountBalance($details->account_balance);
             $account_details->setAccountType($details->account_type);
-            $this->accounts[$details->account_number] = $account_details;
+            $this->accounts[] = $account_details;
         }
     }
 
-    public function addAccount(int $_account_number, object $_account): void
+    public function loadAccount(array $_account): void
     {
-        $this->accounts[$_account_number] = $_account;
+        $this->accounts = [...$_account];
+    }
+
+    public function addAccount(object $_account): void
+    {
+        $this->accounts[$_account->getAccountNumber()] = $_account;
     }
 
     public function jsonSerialize(): array
