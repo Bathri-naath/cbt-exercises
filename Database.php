@@ -6,7 +6,6 @@ class Database{
     private const PASSWORD = "Bathri1409_";
     private const DBNAME = "deposit";
 
-
     public $conn;
 
     public function __construct()
