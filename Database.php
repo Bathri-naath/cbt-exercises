@@ -7,7 +7,7 @@ class Database{
     private const DBNAME = "deposit";
 
     public $conn;
-
+    
     public function __construct()
     {
         $this->conn  = new mysqli(self::SERVERNAME,self::USERNAME,self::PASSWORD,self::DBNAME);
