@@ -4,6 +4,8 @@ use Random\Randomizer;
 
 require_once 'Customer.php';
 
+$connect_database = new Database();
+
 class AccountService
 {
 
