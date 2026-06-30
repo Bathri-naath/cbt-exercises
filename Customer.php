@@ -42,17 +42,6 @@ class Customer implements JsonSerializable
         $this->customer_id = $_customer_id;
     }
 
-    public function setAccounts(array $_accounts): void
-    {
-        foreach ($_accounts as $account_id => $details) {
-            $account_details = new Account();
-            $account_details->setAccountNumber($details->account_number);
-            $account_details->setAccountBalance($details->account_balance);
-            $account_details->setAccountType($details->account_type);
-            $this->accounts[] = $account_details;
-        }
-    }
-
     public function loadAccount(array $_account): void
     {
         $this->accounts = [...$_account];
@@ -74,13 +63,13 @@ class Customer implements JsonSerializable
     }
 
 
-    public function removeAccount(int $_account_number){
-        foreach($this->accounts as $key=>$accounts){
-            if($accounts->getAccountNumber()==$_account_number){
+    public function removeAccount(int $_account_number)
+    {
+        foreach ($this->accounts as $key => $accounts) {
+            if ($accounts->getAccountNumber() == $_account_number) {
                 unset($this->accounts[$key]);
                 $this->accounts = array_values($this->accounts);
             }
         }
     }
-
 }

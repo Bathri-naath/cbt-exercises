@@ -81,7 +81,6 @@ class AccountService
 
     private function saveNewAccount(int $_account_number, string $_account_type, float $_account_balance, int $_customer_id, ?string $_customer_name, ?int $_mobile_number)
     {
-        $_customers = $this->customers;
         $new_account = new Account();
         $new_account->setAccountBalance($_account_balance);
         $new_account->setAccountType($_account_type);
