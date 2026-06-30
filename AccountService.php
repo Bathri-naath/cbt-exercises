@@ -4,7 +4,7 @@ use Random\Randomizer;
 
 require_once 'Customer.php';
 
-$connect_database = new Database();
+global $connect_database;
 
 class AccountService
 {
@@ -19,17 +19,25 @@ class AccountService
     public function __construct()
     {
         $this->date_today = date('d-m-Y');
-        $customer_json_string = file_get_contents($this->customer_json_path);
-        $customer_information = json_decode($customer_json_string);
-        foreach ($customer_information as $customer) {
-
+        $connect_database = new Database();
+        $connect_database->conn->set_charset("utf8mb4");
+        $query = "SELECT * FROM CUSTOMERS INNER JOIN ACCOUNTS ON CUSTOMERS.CUSTOMER_ID = ACCOUNTS.CUSTOMER_ID";
+        $query_result = $connect_database->conn->query($query);
+        while ($table_row = $query_result->fetch_assoc()) {
+            $customer_id = $table_row['customer_id'];
             $customer_details = new Customer();
-            $customer_details->setCustomerId($customer->customer_id);
-            $customer_details->setMobileNumber($customer->mobile_number);
-            $customer_details->setCustomerName($customer->customer_name);
-            $customer_details->setAccounts($customer->accounts);
-            $this->customers[$customer->customer_id] = $customer_details;
+            if (!isset($customer_information[$customer_id])) {
+                $customer_details->setCustomerId($customer_id);
+                $customer_details->setCustomerName($table_row['customer_name']);
+                $customer_details->setMobileNumber($table_row['mobile_number']);
+                $this->customers[$customer_id] = $customer_details;
+            }
 
+            $account_information = new Account();
+            $account_information->setAccountNumber($table_row['account_number']);
+            $account_information->setAccountBalance($table_row['account_balance']);
+            $account_information->setAccountType($table_row['account_type']);
+            $this->customers[$customer_id]->addAccount($account_information);
         }
     }
 
@@ -132,8 +140,6 @@ class AccountService
         $new_account_number = $this->generateNewAccountNumber();
 
         $this->saveNewAccount($new_account_number, $input_account_type, 0.0, $_customer_id, $input_banker_name, $_banker_mobile_number);
-
-
     }
 
     private function getAccountDetailsByMobileNumber(int $_mobile)
@@ -150,9 +156,7 @@ class AccountService
                 $customer_details = ["account_type" => $account_type, "customer_id" => $details->getCustomerId()];
                 return $customer_details;
             }
-
         }
-
     }
 
     private function generateNewAccountType(string $_account_type)
@@ -190,9 +194,7 @@ class AccountService
                         "Account Balance: " . $account->getAccountBalance() . "\n";
                 }, $details->getAccounts()));
             }
-
         }
-
     }
 
     private function displayAccountByAccountNumber(int $_account_number)
@@ -246,7 +248,6 @@ class AccountService
             }
         }
         return true;
-
     }
 
     private function canDeposit(string $_account_type, float $_amount)
@@ -274,7 +275,6 @@ class AccountService
                 }
             }
         }
-
     }
 
     private function checkDailyLimit(int $_account_number)
@@ -294,7 +294,6 @@ class AccountService
         } else {
             return false;
         }
-
     }
 
 
@@ -308,7 +307,6 @@ class AccountService
                 }
             }
         }
-
     }
 
 
@@ -325,7 +323,6 @@ class AccountService
                 }
             }
         }
-
     }
 
 
@@ -369,15 +366,11 @@ class AccountService
                 } else {
                     echo "\nYou have reached the day's limit for this account\n";
                 }
-
             }
-
-
         } else {
             echo "\n This account doesn't exist!";
             goto acc_num_inp;
         }
-
     }
 
     private function closeAccount()
@@ -402,17 +395,12 @@ class AccountService
             $json = json_encode($this->customers, JSON_PRETTY_PRINT);
             file_put_contents($this->customer_json_path, $json);
             echo "\n\nAccount Deleted!\n";
-
         } else {
             echo "\nThis account number does not exists!\n";
         }
-
     }
 
-    public function loadCustomer(object $_customer)
-    {
-
-    }
+    public function loadCustomer(object $_customer) {}
 
     public function run()
     {
@@ -441,11 +429,7 @@ class AccountService
 
                 case 5:
                     echo "\nThank You!";
-
             }
-
         } while ($choice < 5);
-
     }
-
 }
