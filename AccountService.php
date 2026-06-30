@@ -3,12 +3,14 @@
 use Random\Randomizer;
 
 require_once 'Customer.php';
+require_once 'Database.php';
 
-global $connect_database;
+
 
 class AccountService
 {
 
+    use Database;
     public array $customers = [];
     public float $total_amount;
     public string $date_today;
@@ -19,10 +21,9 @@ class AccountService
     public function __construct()
     {
         $this->date_today = date('d-m-Y');
-        $connect_database = new Database();
-        $connect_database->conn->set_charset("utf8mb4");
+        $this->conn->set_charset("utf8mb4");
         $query = "SELECT * FROM CUSTOMERS INNER JOIN ACCOUNTS ON CUSTOMERS.CUSTOMER_ID = ACCOUNTS.CUSTOMER_ID";
-        $query_result = $connect_database->conn->query($query);
+        $query_result = $this->conn->query($query);
         while ($table_row = $query_result->fetch_assoc()) {
             $customer_id = $table_row['customer_id'];
             $customer_details = new Customer();
@@ -102,6 +103,15 @@ class AccountService
             $new_user->addAccount($new_account);
             $this->customers[$_customer_id] = $new_user;
         }
+        $sql_query = "INSERT INTO ACCOUNTS (ACCOUNT_NUMBER, CUSTOMER_ID, ACCOUNT_TYPE, ACCOUNT_BALANCE)
+        VALUES (?, ?, ?, ?)";
+        $query_result = $this->conn->prepare($sql_query);
+        $query_result->bind_param("iisd", $_account_number, $_customer_id, $_account_type, $_account_balance);
+
+        $sql_query = "INSERT INTO CUSTOMERS (CUSTOMER_ID, CUSTOMER_NAME, MOBILE_NUMBER)
+        VALUES (?, ?, ?)";
+        $query_result = $this->conn->prepare($sql_query);
+        $query_result->bind_param("isi", $_customer_id, $_customer_name, $_mobile_number);
 
         $indexed_customer_array = array_values($this->customers);
         foreach ($indexed_customer_array as $customer) {
@@ -109,9 +119,6 @@ class AccountService
             $customer->loadAccount($indexed_accounts_array);
         }
 
-        $new_customer_json_string = json_encode($indexed_customer_array, JSON_PRETTY_PRINT);
-
-        file_put_contents($this->customer_json_path, $new_customer_json_string);
         echo "\nAccount created!";
         $this->displayAccountByAccountNumber($_account_number);
     }
