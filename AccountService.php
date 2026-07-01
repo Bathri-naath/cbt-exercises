@@ -10,7 +10,7 @@ require_once 'Database.php';
 class AccountService
 {
 
-    use Database;
+
     public array $customers = [];
     public float $total_amount;
     public string $date_today;
@@ -18,16 +18,19 @@ class AccountService
     public string $limit_json_path = __DIR__ . "/AccountLimit.json";
     public string $customer_json_path = __DIR__ . '/AccountInformation.json';
     public string $transaction_json_path = __DIR__ . '/AccountTransaction.json';
+    private mysqli $database_connection;
     public function __construct()
     {
+        $database = new Database();
+        $this->database_connection = $database->getDatabaseConnection();
         $this->date_today = date('d-m-Y');
-        $this->conn->set_charset("utf8mb4");
+        $this->database_connection->set_charset("utf8mb4");
         $query = "SELECT * FROM CUSTOMERS INNER JOIN ACCOUNTS ON CUSTOMERS.CUSTOMER_ID = ACCOUNTS.CUSTOMER_ID";
-        $query_result = $this->conn->query($query);
+        $query_result = $this->database_connection->query($query);
         while ($table_row = $query_result->fetch_assoc()) {
             $customer_id = $table_row['customer_id'];
             $customer_details = new Customer();
-            if (!isset($customer_information[$customer_id])) {
+            if (!isset($this->customers[$customer_id])) {
                 $customer_details->setCustomerId($customer_id);
                 $customer_details->setCustomerName($table_row['customer_name']);
                 $customer_details->setMobileNumber($table_row['mobile_number']);
@@ -102,16 +105,19 @@ class AccountService
             $new_user->setCustomerName($_customer_name);
             $new_user->addAccount($new_account);
             $this->customers[$_customer_id] = $new_user;
+
+            $sql_query = "INSERT INTO CUSTOMERS (CUSTOMER_ID, CUSTOMER_NAME, MOBILE_NUMBER)
+            VALUES (?, ?, ?)";
+            $query_result = $this->database_connection->prepare($sql_query);
+            $query_result->bind_param("isi", $_customer_id, $_customer_name, $_mobile_number);
+            $query_result->execute();
         }
+
         $sql_query = "INSERT INTO ACCOUNTS (ACCOUNT_NUMBER, CUSTOMER_ID, ACCOUNT_TYPE, ACCOUNT_BALANCE)
         VALUES (?, ?, ?, ?)";
-        $query_result = $this->conn->prepare($sql_query);
+        $query_result = $this->database_connection->prepare($sql_query);
         $query_result->bind_param("iisd", $_account_number, $_customer_id, $_account_type, $_account_balance);
-
-        $sql_query = "INSERT INTO CUSTOMERS (CUSTOMER_ID, CUSTOMER_NAME, MOBILE_NUMBER)
-        VALUES (?, ?, ?)";
-        $query_result = $this->conn->prepare($sql_query);
-        $query_result->bind_param("isi", $_customer_id, $_customer_name, $_mobile_number);
+        $query_result->execute();
 
         $indexed_customer_array = array_values($this->customers);
         foreach ($indexed_customer_array as $customer) {
@@ -159,7 +165,7 @@ class AccountService
                 foreach ($accounts as $account_number => $account_details) {
                     $account_type = $account_details->getAccountType();
                 }
-                $customer_details = ["account_type" => $account_type, "customer_id" => $details->getCustomerId()];
+                $customer_details = ["account_type" => $account_type, "customer_id" => $details->getCustomerId(), "customer_name" => $details->getCustomerName(), "mobile_number" => $details->getMobileNumber()];
                 return $customer_details;
             }
         }
@@ -227,7 +233,7 @@ class AccountService
             $existing_account_details = $this->getAccountDetailsByMobileNumber($input_mobile_number);
             $account_number = $this->generateNewAccountNumber();
             $new_account_type = $this->generateNewAccountType($existing_account_details['account_type']);
-            $this->saveNewAccount($account_number, $new_account_type, 0.0, $existing_account_details['customer_id'], NULL, NULL);
+            $this->saveNewAccount($account_number, $new_account_type, 0.0, $existing_account_details['customer_id'], $existing_account_details['customer_name'], $existing_account_details['mobile_number']);
         } elseif ($account_count == 2) {
             echo "\nThis user already exists!\n";
             $this->displayAccountByMobileNumber($input_mobile_number);
@@ -323,8 +329,12 @@ class AccountService
             foreach ($customer_details->getAccounts() as $account_details) {
                 if ($account_details->getAccountNumber() == $_account_number) {
                     $account_details->setAccountBalance($_deposit_amount);
-                    $json = json_encode($this->customers, JSON_PRETTY_PRINT);
-                    file_put_contents($this->customer_json_path, $json);
+                    $sql_query = "UPDATE ACCOUNTS
+                    SET ACCOUNT_BALANCE = ?
+                    WHERE ACCOUNT_NUMBER = ?";
+                    $query_result = $this->database_connection->prepare($sql_query);
+                    $query_result->bind_param("di", $_deposit_amount, $_account_number);
+                    $query_result->execute();
                     break;
                 }
             }
@@ -392,8 +402,25 @@ class AccountService
                         $number_of_accounts = count($customer_details->getAccounts());
                         if ($number_of_accounts == 1) {
                             unset($this->customers[$customer_id]);
+                            $sql_query = "DELETE FROM CUSTOMERS
+                            WHERE CUSTOMER_ID = ?";
+                            $query_result = $this->database_connection->prepare($sql_query);
+                            $query_result->bind_param("i", $customer_id);
+                            $query_result->execute();
+
+                            $sql_query = "DELETE FROM ACCOUNTS
+                            WHERE CUSTOMER_ID = ?";
+                            $query_result = $this->database_connection->prepare($sql_query);
+                            $query_result->bind_param("i", $customer_id);
+                            $query_result->execute();
                         } else {
                             $customer_details->removeAccount($input_account_number);
+
+                            $sql_query = "DELETE FROM ACCOUNTS
+                            WHERE ACCOUNT_NUMBER = ?";
+                            $query_result = $this->database_connection->prepare($sql_query);
+                            $query_result->bind_param("i", $input_account_number);
+                            $query_result->execute();
                         }
                     }
                 }

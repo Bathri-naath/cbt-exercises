@@ -3,34 +3,34 @@
         "customer_id": 5654,
         "customer_name": "Bathri",
         "mobile_number": 9445704736,
-        "accounts": [
-            {
+        "accounts": {
+            "954133245": {
                 "account_number": 954133245,
                 "account_type": "Savings",
                 "account_balance": 105000
             },
-            {
+            "746112357": {
                 "account_number": 746112357,
                 "account_type": "Current",
                 "account_balance": 105000
             }
-        ]
+        }
     },
     "5124": {
         "customer_id": 5124,
         "customer_name": "Bharat",
         "mobile_number": 8015355916,
-        "accounts": [
-            {
+        "accounts": {
+            "475123395": {
                 "account_number": 475123395,
                 "account_type": "Savings",
-                "account_balance": 105000
+                "account_balance": 50000
             },
-            {
+            "369583659": {
                 "account_number": 369583659,
                 "account_type": "Current",
                 "account_balance": 0
             }
-        ]
+        }
     }
 }
